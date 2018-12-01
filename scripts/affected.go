@@ -31,7 +31,7 @@ func main() {
 			continue
 		}
 		goModules[env.GoMod] = struct{}{}
-		log.Print(filepath.Dir(env.GoMod))
+		fmt.Println(filepath.Dir(env.GoMod))
 	}
 }
 
