@@ -1,0 +1,3 @@
+blue/test.go
+blue/red/test.go
+test.go
