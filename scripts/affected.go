@@ -1,29 +1,27 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 )
 
 func main() {
-	filesValue := flag.String("files", "", "files")
-	flag.Parse()
+	goModules := make(map[string]struct{})
 
-	files := strings.Split(*filesValue, ",")
-	goModules := make(map[string]struct{}, len(files))
-
-	for _, file := range files {
-		if file == "" {
+	s := bufio.NewScanner(os.Stdin)
+	for s.Scan() {
+		line := s.Text()
+		if line == "" {
 			continue
 		}
-		env, err := GetEnv(filepath.Dir(file))
+		env, err := GetEnv(filepath.Dir(line))
 		if err != nil {
 			log.Fatal(err)
 		}
