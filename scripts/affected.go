@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -13,47 +12,55 @@ import (
 )
 
 func main() {
+	dirs := make(map[string]struct{})
 	goModules := make(map[string]struct{})
 
-	s := bufio.NewScanner(os.Stdin)
-	for s.Scan() {
-		line := s.Text()
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		line := scanner.Text()
 		if line == "" {
 			continue
 		}
-		env, err := GetEnv(filepath.Dir(line))
+
+		dir := filepath.Dir(line)
+		if _, ok := dirs[dir]; ok {
+			continue
+		}
+		dirs[dir] = struct{}{}
+
+		goMod, err := getGoMod(dir)
 		if err != nil {
 			log.Fatal(err)
 		}
-		if _, ok := goModules[env.GoMod]; ok {
+		if goMod == "" {
 			continue
 		}
-		goModules[env.GoMod] = struct{}{}
-		fmt.Println(filepath.Dir(env.GoMod))
+		if _, ok := goModules[goMod]; ok {
+			continue
+		}
+		goModules[goMod] = struct{}{}
+
+		fmt.Println(filepath.Dir(goMod))
 	}
 }
 
-type Env struct {
+type env struct {
 	GoMod string `json:"GOMOD"`
 }
 
-func GetEnv(dir string) (*Env, error) {
+func getGoMod(dir string) (string, error) {
 	buf := &bytes.Buffer{}
 	cmd := exec.Command("go", "env", "-json")
 	cmd.Dir = dir
 	cmd.Stdout = buf
 	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("error while running go env command: %v", err)
+		return "", fmt.Errorf("error while running go env command: %v", err)
 	}
 
-	var env Env
+	var env env
 	if err := json.NewDecoder(buf).Decode(&env); err != nil {
-		return nil, fmt.Errorf("error while parsing json: %v", err)
+		return "", fmt.Errorf("error while parsing json: %v", err)
 	}
 
-	if env.GoMod == "" {
-		return nil, errors.New("no go module")
-	}
-
-	return &env, nil
+	return env.GoMod, nil
 }
